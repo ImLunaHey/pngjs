@@ -3,3 +3,5 @@ test.png
 png-js-test.js
 v8*
 html/png.js
+dist
+*.tgz

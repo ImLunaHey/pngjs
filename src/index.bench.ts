@@ -1,8 +1,9 @@
 import { bench, test } from 'vitest';
 import { PNGReader } from './reader';
 import { readFile } from 'fs/promises';
+import { join } from 'path';
 
-const file = __dirname + '/../html/ubuntu-screenshot.png';
+const file = join(__dirname, '../assets/test-image.png');
 
 test('perf', async () => {
   const bytes = await readFile(file);

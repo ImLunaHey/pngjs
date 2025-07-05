@@ -4,8 +4,9 @@ import { readFile } from 'fs/promises';
 import { createWriteStream } from 'fs';
 import { describe, expect, test, vi } from 'vitest';
 import temporaryPath from 'temporary-path';
+import { join } from 'path';
 
-const sourceFile = __dirname + '/../html/ubuntu-screenshot.png';
+const sourceFile = join(__dirname, '../assets/test-image.png');
 
 describe('png-reader', async () => {
   test('canvas', async () => {

@@ -6,7 +6,7 @@ Make sure to use a modern bundler as the files are ESM.
 ## Usage
 
 ```ts
-import PNGReader = require('png.js');
+import PNGReader from 'png.js';
 
 const reader = new PNGReader(bytes);
 const png = await reader.parse();

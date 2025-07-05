@@ -1,10 +1,10 @@
 {
-  "author": "Arian Stolwijk",
-  "name": "png.js",
-  "description": "A PNG decoder fully written in JavaScript",
+  "author": "luna",
+  "name": "@imlunahey/png.js",
+  "description": "A PNG decoder fully written in Typescript",
   "version": "1.0.0",
   "repository": {
-    "url": "git://github.com/arian/pngjs.git"
+    "url": "git://github.com/imlunahey/pngjs.git"
   },
   "license": "MIT",
   "scripts": {

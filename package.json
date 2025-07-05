@@ -2,7 +2,7 @@
   "author": "luna",
   "name": "@imlunahey/png.js",
   "description": "A PNG decoder fully written in Typescript",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "repository": {
     "url": "git://github.com/imlunahey/pngjs.git"
   },

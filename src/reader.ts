@@ -32,35 +32,61 @@ const bufferToString = (buffer: Uint8Array) => {
 };
 
 export class PNGReader {
+  /**
+   * The bytes of the image
+   */
   private bytes: Uint8Array;
+  /**
+   * The current pointer
+   */
   private i: number;
+  /**
+   * The PNG object
+   */
   private png: PNG;
+  /**
+   * The data chunks of the image
+   */
   private dataChunks: Uint8Array[];
+  /**
+   * The header of the image
+   */
   public header: Uint8Array;
 
-  // @TODO: fix this any
-  constructor(bytes: any) {
+  constructor(bytes: string | Uint8Array) {
+    let processedBytes: Uint8Array;
+
     if (typeof bytes == 'string') {
       const bts = bytes;
-      bytes = new Array(bts.length);
+      const byteArray = new Array(bts.length);
       for (let i = 0, l = bts.length; i < l; i++) {
-        bytes[i] = bts[i].charCodeAt(0);
+        byteArray[i] = bts[i].charCodeAt(0);
       }
+      processedBytes = new Uint8Array(byteArray);
     } else {
       const type = toString.call(bytes).slice(8, -1);
-      if (type == 'ArrayBuffer') bytes = new Uint8Array(bytes);
+      if (type == 'ArrayBuffer') {
+        processedBytes = new Uint8Array(bytes);
+      } else {
+        processedBytes = bytes;
+      }
     }
 
     // current pointer
     this.i = 0;
     // bytes buffer
-    this.bytes = bytes;
+    this.bytes = processedBytes;
     // Output object
     this.png = new PNG();
 
     this.dataChunks = [];
   }
 
+  /**
+   * Read the bytes of the image
+   * @param length - The length of the bytes to read
+   * @returns The bytes of the image
+   */
   readBytes(length: number) {
     const end = this.i + length;
     if (end > this.bytes.length) {
@@ -72,7 +98,9 @@ export class PNGReader {
   }
 
   /**
-   * http://www.w3.org/TR/2003/REC-PNG-20031110/#5PNG-file-signature
+   * Decode the header of the image
+   *
+   * @see http://www.w3.org/TR/2003/REC-PNG-20031110/#5PNG-file-signature
    */
   decodeHeader() {
     if (this.i !== 0) {
@@ -89,12 +117,16 @@ export class PNGReader {
   }
 
   /**
-   * http://www.w3.org/TR/2003/REC-PNG-20031110/#5Chunk-layout
+   * Decode a chunk of the image
    *
+   * ```
    * length =  4      bytes
    * type   =  4      bytes (IHDR, PLTE, IDAT, IEND or others)
-   * chunk  =  length bytes
+   * chunk  =  length bytes (data)
    * crc    =  4      bytes
+   * ```
+   *
+   * @see http://www.w3.org/TR/2003/REC-PNG-20031110/#11Chunk-layout
    */
   decodeChunk() {
     const length = readUInt32(this.readBytes(4), 0);
@@ -131,9 +163,9 @@ export class PNGReader {
   }
 
   /**
-   * http://www.w3.org/TR/2003/REC-PNG-20031110/#11IHDR
-   * http://www.libpng.org/pub/png/spec/1.2/png-1.2-pdg.html#C.IHDR
+   * Decode the IHDR chunk
    *
+   * ```
    * Width               4 bytes
    * Height              4 bytes
    * Bit depth           1 byte
@@ -141,6 +173,9 @@ export class PNGReader {
    * Compression method  1 byte
    * Filter method       1 byte
    * Interlace method    1 byte
+   * ```
+   * @see http://www.w3.org/TR/2003/REC-PNG-20031110/#11IHDR
+   * @see http://www.libpng.org/pub/png/spec/1.2/png-1.2-pdg.html#C.IHDR
    */
   decodeIHDR(chunk: Uint8Array) {
     this.png.setWidth(readUInt32(chunk, 0));
@@ -153,15 +188,27 @@ export class PNGReader {
   }
 
   /**
+   * Decode the PLTE chunk
    *
-   * http://www.w3.org/TR/PNG/#11PLTE
+   * ```
+   * Palette size (1-256)
+   * Red values (1 byte each)
+   * Green values (1 byte each)
+   * Blue values (1 byte each)
+   * ```
+   * @see http://www.w3.org/TR/PNG/#11PLTE
    */
   decodePLTE(chunk: Uint8Array) {
     this.png.setPalette(chunk);
   }
 
   /**
-   * http://www.w3.org/TR/2003/REC-PNG-20031110/#11IDAT
+   * Decode the IDAT chunk
+   *
+   * ```
+   * Data
+   * ```
+   * @see http://www.w3.org/TR/2003/REC-PNG-20031110/#11IDAT
    */
   decodeIDAT(chunk: Uint8Array) {
     // multiple IDAT chunks will concatenated
@@ -169,19 +216,31 @@ export class PNGReader {
   }
 
   /**
-   * https://www.w3.org/TR/PNG/#11tRNS
+   * Decode the tRNS chunk
+   *
+   * ```
+   * Transparency values
+   * ```
+   * @see https://www.w3.org/TR/PNG/#11tRNS
    */
   decodeTRNS(chunk: Uint8Array) {
     this.png.setTRNS(chunk);
   }
 
   /**
-   * http://www.w3.org/TR/2003/REC-PNG-20031110/#11IEND
+   * Decode the IEND chunk
+   *
+   * ```
+   * IEND chunk
+   * ```
+   * @see http://www.w3.org/TR/2003/REC-PNG-20031110/#11IEND
    */
   decodeIEND(_chunk: Uint8Array) {}
 
   /**
    * Uncompress IDAT chunks
+   *
+   * @see http://www.w3.org/TR/2003/REC-PNG-20031110/#11IDAT
    */
   async decodePixels() {
     const png = this.png;
@@ -201,6 +260,11 @@ export class PNGReader {
     }
   }
 
+  /**
+   * Decode the image without interlacing
+   *
+   * @param data - The data of the image
+   */
   interlaceNone(data: Uint8Array) {
     // bytes per pixel
     const bpp = Math.max(1, (this.png.getColors() * this.png.getBitDepth()) / 8);
@@ -246,6 +310,12 @@ export class PNGReader {
 
   /**
    * No filtering, direct copy
+   *
+   * @param scanline - The scanline of the image
+   * @param pixels - The pixels of the image
+   * @param _bpp - The bytes per pixel
+   * @param of - The offset of the image
+   * @param length - The length of the image
    */
   unFilterNone(scanline: Uint8Array, pixels: Uint8Array, _bpp: number, of: number, length: number) {
     for (let i = 0, to = length; i < to; i++) {
@@ -257,6 +327,12 @@ export class PNGReader {
    * The Sub() filter transmits the difference between each byte and the value
    * of the corresponding byte of the prior pixel.
    * Sub(x) = Raw(x) + Raw(x - bpp)
+   *
+   * @param scanline - The scanline of the image
+   * @param pixels - The pixels of the image
+   * @param bpp - The bytes per pixel
+   * @param of - The offset of the image
+   * @param length - The length of the image
    */
   unFilterSub(scanline: Uint8Array, pixels: Uint8Array, bpp: number, of: number, length: number) {
     let i = 0;
@@ -272,6 +348,12 @@ export class PNGReader {
    * immediately above the current pixel, rather than just to its left, is used
    * as the predictor.
    * Up(x) = Raw(x) + Prior(x)
+   *
+   * @param scanline - The scanline of the image
+   * @param pixels - The pixels of the image
+   * @param _bpp - The bytes per pixel
+   * @param of - The offset of the image
+   * @param length - The length of the image
    */
   unFilterUp(scanline: Uint8Array, pixels: Uint8Array, _bpp: number, of: number, length: number) {
     let i = 0;
@@ -297,6 +379,12 @@ export class PNGReader {
    * The Average() filter uses the average of the two neighboring pixels (left
    * and above) to predict the value of a pixel.
    * Average(x) = Raw(x) + floor((Raw(x-bpp)+Prior(x))/2)
+   *
+   * @param scanline - The scanline of the image
+   * @param pixels - The pixels of the image
+   * @param bpp - The bytes per pixel
+   * @param of - The offset of the image
+   * @param length - The length of the image
    */
   unFilterAverage(scanline: Uint8Array, pixels: Uint8Array, bpp: number, of: number, length: number) {
     let i = 0;
@@ -347,6 +435,12 @@ export class PNGReader {
    *       else if pb <= pc then return b
    *       else return c
    *  end
+   *
+   * @param scanline - The scanline of the image
+   * @param pixels - The pixels of the image
+   * @param bpp - The bytes per pixel
+   * @param of - The offset of the image
+   * @param length - The length of the image
    */
   unFilterPaeth(scanline: Uint8Array, pixels: Uint8Array, bpp: number, of: number, length: number) {
     let i = 0;
@@ -395,7 +489,9 @@ export class PNGReader {
 
   /**
    * Parse the PNG file
+   *
    * @param readData - if true, read the pixel data
+   * @returns The PNG object
    */
   async parse(readData: boolean) {
     this.decodeHeader();

@@ -1,46 +1,28 @@
+# PNG.js
 
-PNG.js
-======
+PNG.js is a PNG decoder fully written in Typescript. It should work in both the backend and frontend.
+Make sure to use a modern bundler as the files are ESM.
 
-PNG.js is a PNG decoder fully written in JavaScript. It works in Node.js as
-well as in (modern) browsers.
+## Usage
 
-Usage
------
+```ts
+import PNGReader = require('png.js');
 
-``` js
-var PNGReader = require('png.js');
-
-var reader = new PNGReader(bytes);
-reader.parse(function(err, png){
-	if (err) throw err;
-	console.log(png);
-});
-
-```
-
-Or with options:
-
-``` js
-reader.parse({
-	data: false
-}, function(err, png){
-	if (err) throw err;
-	console.log(png);
-});
-
+const reader = new PNGReader(bytes);
+const png = await reader.parse();
+console.info(png);
 ```
 
 Currently the only option is:
 
-- `data` (*boolean*) - should it read the pixel data, or only the image information.
+- `data` (_boolean_) - should it read the pixel data, or only the image information.
 
 ### PNG object
 
 The PNG object is passed in the callback. It contains all the data extracted
 from the image.
 
-``` js
+```js
 // most importantly
 png.getWidth();
 png.getHeight();
@@ -55,72 +37,53 @@ png.getInterlaceMethod();
 png.getPalette();
 ```
 
-Using PNGReader in Node.js
---------------------------
+## Using PNGReader in Node.js
 
 PNGReader accepts an `Buffer` object, returned by `fs.readFile`, for example:
 
-``` js
-fs.readFile('test.png', function(err, buffer){
-
-	var reader = new PNGReader(buffer);
-	reader.parse(function(err, png){
-		if (err) throw err;
-		console.log(png);
-	});
-
-});
+```js
+const buffer = await readFile('test.png');
+const reader = new PNGReader(buffer);
+const png = await reader.parse();
+console.info(png);
 ```
 
-Using PNGReader in the Browser
-------------------------------
+## Using PNGReader in the Browser
 
 PNGReader accepts a byte string, array of bytes or an ArrayBuffer.
 
 For example using FileReader with file input fields:
 
 ```js
-var reader = new FileReader();
+const reader = new FileReader();
 
-reader.onload = function(event){
-	var reader = new PNGReader(event.target.result);
-	reader.parse(function(err, png){
-		if (err) throw err;
-		console.log(png);
-	});
+reader.onload = async (event) => {
+  const reader = new PNGReader(event.target.result);
+  const png = await reader.parse();
+  console.info(png);
 };
 
-fileInputElement.onchange = function(){
-	reader.readAsArrayBuffer(fileInputElement.files[0]);
-	// or, but less optimal
-	reader.readAsBinaryString(fileInputElement.files[0]);
+fileInputElement.onchange = () => {
+  reader.readAsArrayBuffer(fileInputElement.files[0]);
+  // or, but less optimal
+  reader.readAsBinaryString(fileInputElement.files[0]);
 };
 ```
 
 Or instead of using input elements, XHR can also be used:
 
-```js
-var xhr = new XMLHttpRequest();
+```ts
+const xhr = new XMLHttpRequest();
 xhr.open('GET', 'image.png', true);
 xhr.responseType = 'arraybuffer';
 
-xhr.onload = function(e){
-	if (this.status == 200){
-		var reader = new PNGReader(this.response);
-		reader.parse(function(err, png){
-			if (err) throw err;
-			console.log(png);
-		});
-	}
+xhr.onload = () => {
+  if (this.status == 200) {
+    const reader = new PNGReader(this.response);
+    const png = await reader.parse();
+    console.info(png);
+  }
 };
 
 xhr.send();
 ```
-
-Building Browser Version
-------------------------
-
-PNG.js uses CommonJS modules which can be used in browsers after building it
-with [browserify](http://browserify.org/):
-
-	browserify ./PNGReader.js -s PNGReader
